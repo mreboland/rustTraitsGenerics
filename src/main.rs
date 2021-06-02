@@ -106,6 +106,33 @@ fn main() {
 
     // A ref to a trait type, like writer, is called a trait object. Like any other ref, a trait object points to some value, it has a lifetime, and it can be either mut or shared.
 
-    // What makes a trait object diff is that Rust usually doesn't know the type of the referent at compile time. So a trait object includes a little extra info about the referent's type. This is strictly for Rust's own use behind the scenes. When we call writer.write(data), Rust needs the type info to dynamically call the right method depending on the type of *writer. We can't query the type info directly, and Rust does not support downcasting from the trait object &mut Write back to a concrete type like Vec<u8>
+    // What makes a trait object diff is that Rust usually doesn't know the type of the referent at compile time. So a trait object includes a little extra info about the referent's type. This is strictly for Rust's own use behind the scenes. When we call writer.write(data), Rust needs the type info to dynamically call the right method depending on the type of *writer. We can't query the type info directly, and Rust does not support downcasting from the trait object &mut Write back to a concrete type like Vec<u8>.
+
+
+
+    // Trait Object Layout
+
+    // In memory, a trait object is a fat pointer consisting of a pointer to the value, plus a pointer to a table representing that value's type. Each trait object therefore takes up two machine words (see page 378 for diagram).
+
+    // It's called a virtual table, or vtable. In rust, the vtable is generated once, at compile time, and shared by all objects of the same type. Everything shown in dark grey (see table), including the vtable, is a private implementation detail of Rust. These aren't fields and data structures that we can access directly. Instead, the language automatically uses the vtable when we call a method of a trait object to determine which implementation to call.
+
+    // In C++, the vtable pointer, or vptr, is stored as part of the struct. Rust uses fat pointers instead. The struct itself contains nothing but its fields. This way, a struct can implement dozens of traits without containing dozens of vptrs. Even types like i32, which aren't big enough to accommodate a vptr, can implement traits.
+
+    // Rust automatically converts ordinary references into trait objects when needed. This is why we're able to pass &mut local_file to say_hello in this example:
+    let mut local_file = File::create("hello.txt")?;
+    say_hello(&mut local_file)?;
+
+    // The type of &mut local_file is &mut File, and the type of the argument to say_hello is &mut Write. Since a File is a kind of writer, Rust allows this, automatically converting the plain reference to a trait object.
+
+    // Likewise, Rust will happily convert a Box<File> to a Box<Write>, a value that owns a writer in the heap:
+    let w: Box<Write> = Box::new(local_file);
+
+    // Box<Write>, like &mut Write, is a fat pointer. It contains the address of the writer itself and the address of the vtable. The same goes for other pointer types, like Rc<Write>.
+
+    // This kind of conversion is the only way to create a trait object. What the computer is actually doing here is very simple. At the point where the conversion happens, Rust knows the referent's true type (in this case, File), so it just adds the address of the appropriate vtable, turning the regular pointer into a fat pointer.
+
+
+
+    
 
 }
