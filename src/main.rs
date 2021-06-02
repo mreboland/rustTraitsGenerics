@@ -56,6 +56,36 @@ fn main() {
 
 
 
+    // Using Traits
+
+    // A trait is a feature that any given type may or may not support. Most often, a trait represents a capability, something a type can do.
+        // A value that implements std::io::Write can write out bytes
+        // A value that implements std::iter::Iterator can produce sequence of value
+        // A value that implements std::clone::Clone can make clones of itself in memory
+        // A value that implements std::fmt::Debug can be printed using println!() with the {:?} format specifier.
+
+    // These traits are all part of Rust's standard library, and many standard types implement them.
+        // std::fs::File implements the Write trait. It writes bytes to a local file. std::net::TcpStream writes to a network connection. Vec<u8> also implements Write. Each .write() call on a vector of bytes appends some data to the end.
+        // Range<i32> (the type of 0..10) implements the Iterator trait, as do some iterator types associated with slices, hash tables, and so on.
+        // Most standard library types implement Clone. The exceptions are mainly types like TcpStream that represent more than just data in memory.
+        // Likewise, most standard library types support Debug.
+
+    // There is one unusual rule about trait methods. The trait itself must be in scope, otherwise, all its methods are hidden.
+    let mut buf: Vec<u8> = vec![];
+    buf.write_all(b"hello")?; // error, no method named `write_all`
+
+    // In this case, the compiler prints a friendly error message that suggests adding use std::io::Write, and indeed that fixes the problem:
+    use std::io::Write;
+
+    let mut...
+    buf.write...
+
+    // Rust has this rule because, as we'll see later in the chapt, we can use traits to add new methods to any type, even standard lib types like u32 and str. Third-party crates can do the same thing.
+
+    // The reason Clone and Iterator methods work without any special imports is that they're always in scope by default. They're part of the standard prelude, names that Rust automatically imports into every module. Mor on preludes in chapt 13.
+
+    
+
     
 
 }
