@@ -220,4 +220,63 @@ fn main() {
 
     
 
+    // Which to Use
+
+    // The choice of whether to use trait objects or generic code is subtle. Since both features are based on traits, they have a lot in common.
+
+    // Trait objects are the right choice whenever we need a collection of values of mixed types, all together. It is technically possible to make generic salad:
+    trait Vegetable {
+        ...
+    }
+
+    struct Salad<V: Vegetable> {
+        veggies: Vec<V>
+    }
+
+    // but this is a rather severe design. Each such salad consists entirely of a single type of vegetable.
+
+    // How can we build a better salad? Since Vegetable values can be all diff sizes, we can't ask Rust for a Vec<Vegetable>:
+    struct Salad {
+        veggies: Vec<Vegetable> // error, `Vegetable` does not have a constant size
+    }
+
+    // Trait objects are the solution:
+    struct Salad {
+        veggies: Vec<Box<Vegetable>>
+    }
+
+    // Each Box<Vegetable> can own any type of vegetable, but the box itself has a constant size; two pointers, suitable for storing in a vector. Apart from the unfortunate mixed metaphor of having boxes in one's food, this is precisely what's called for, and it would work out just as well for shapes in a drawing app, monsters in a game, pluggable routing algorithms in a network router, and so on.
+
+    // Another reason to use trait objects is to reduce the total amount of compiled code.
+
+    // Generics have two important advantages over trait objects, with the result that in Rust, generics are the more common choice.
+
+    // The first advantage is speed. Each time the Rust compiler generates machine code for a generic function, it knows which types it's working with, so it knows at that time which write method to call. There's no need for dynamic dispatch.
+
+    // The generic min() function shown in the intro is just as fast as if we had written separate functions min_u8, min_i64, min_string, and so on. The compiler can inline it, like any other function, so in a release build, a call to min::<i32> is likely just two or three instructions. A call with constant arguments, like min(5, 3), will be even faster. Rust can evaluate it at compile time, so that there's no runtime cost at all.
+
+    // Consider this generic function call:
+    let mut sink = std::io::sink();
+    say_hello(&mut sink)?;
+
+    // std::io::sink() returns a writer of type Sink that quietly discards all bytes written to it.
+
+    // When Rust generates machine code for this, it could emit code that call Sink::write_all, checks for errors, then calls Sink::flush. That's what the body of the generic function says to do.
+
+    // Or, Rust could look at those methods and realize the following:
+        // Sink::write_all() does nothing.
+        // Sink::flush() does nothing.
+        // Neither method ever returns an error.
+
+    // In short, Rust has all the info it needs to optimize away this function entirely.
+
+    // Compare that to the behaviour with trait objects. Rust never knows what type of value a trait object points to until run time. So even if we pass a Sink, the overhead of calling virtual methods and checking for errors still applies.
+
+    // The second advantage of generics is that not every trait can support trait objects. Traits support several features, such as static methods, that work only with generics. They rule out trait objects entirely.
+
+
+    
+
+    
+
 }
