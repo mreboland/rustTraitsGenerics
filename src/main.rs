@@ -86,6 +86,26 @@ fn main() {
 
     
 
-    
+    // Trait Objects
+
+    // There are two ways of using traits to write polymorphic code in Rust: trait objects and generics. 
+
+    // Rust doesn't permit variables of type Write:
+    use std::io::Write;
+
+    let mut buf: Vec<u8> = vec![];
+    let writer: Write = buf; // error, `Write` does not have a constant size
+
+    // A variable's size has to be known at compile time, and types that implement Write can be any size.
+
+    // The reason is, unlike Java or other languages that have an equivalent to std::io::Write is that when used, those languages automatically make the variable using it a reference.
+
+    // What we want in Rust is the same thing, But in Rust, references are explicit:
+    let mut buf: Vec<u8> = vec![];
+    let writer: &mut Write = &mut buf; // ok
+
+    // A ref to a trait type, like writer, is called a trait object. Like any other ref, a trait object points to some value, it has a lifetime, and it can be either mut or shared.
+
+    // What makes a trait object diff is that Rust usually doesn't know the type of the referent at compile time. So a trait object includes a little extra info about the referent's type. This is strictly for Rust's own use behind the scenes. When we call writer.write(data), Rust needs the type info to dynamically call the right method depending on the type of *writer. We can't query the type info directly, and Rust does not support downcasting from the trait object &mut Write back to a concrete type like Vec<u8>
 
 }
