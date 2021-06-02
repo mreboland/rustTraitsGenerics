@@ -133,6 +133,91 @@ fn main() {
 
 
 
+    // Generic Functions
+
+    // At the start, we showed a say_hello() function that took a trait object as an argument. Let's rewrite that function as a generic function:
+    fn say_hello<W: Write>(out: &mut W) -> std::io::Result<()> {
+        out.write_all(b"hello world\n")?;
+        out.flush()
+    }
+
+    // Only the type signature has changed:
+    fn say_hello(out: &mut Write) // plain function
+
+    fn say_hello<W: Write>(out: &mut W) // generic function
+
+    // The phrase <W: Write> is what makes the function generic. This is a type parameter. It means that throughout the body of this function, W stands for some type that implements the Write trait. Type parameters are usually single uppercase letters, by convention.
+
+    // Which type W stands for depends on how the generic function is used:
+    say_hello(&mut local_file)?; // calls say_hello::<File>
+    say_hello(&mut bytes)?; // calls say_hello<Vec<u8>>
+
+    // When we pass &mut local_file to the generic say_hello() function, we're calling say_hello::<File>(). Rust generates machine code for this function that calls File::write_all() and File::flush(). When we pass &mut bytes, we're calling say_hello::<Vec<u8>>(). Rust generates separate machine code for this version of the function, calling the corresponding Vec<u8> methods. In both cases, Rust infers the type W from the type of the argument. We can always spell out the type parameters:
+    say_hello::<File>(&mut local_file)?;
+
+    // but it's seldom necessary, because Rust can usually deduce the type parameters by looking at the arguments. Here, the say_hello generic function expects a &mut W argument, and we're passing it a &mut File, so Rust infers that W = File.
+
+    // If the generic function we're calling doesn't have any arguments that provide useful clues, we may have to spell it out:
+    // calling a generic method collect<C>() that takes no arguments
+    let v1 = (0 .. 1000).collect(); // error, can't infer type
+    let v2 = (0 .. 1000).collect::<Vec<i32>>(); // ok
+
+    // Sometimes we need multiple abilities from a type parameter. For example, if we want to print out the top 10 most common values in a vector, we'll need for those values to be printable:
+    use std::fmt::Debug;
+
+    fn top_ten<T: Debug>(values: &Vec<T>) { ... }
+
+    // But this isn't good enough. How are we planning to determine which values are the most common? The usual way is to use the values as keys in a hash table. That means the values need to support the Hash and Eq operations. The bounds on T must include these as well as Debug. The syntax for this uses the + sign:
+    fn top_ten<T: Debug + Hash + Eq>(values: &Vec<T>) { ... }
+
+    // Some types implement Debug, some implement Hash, some support Eq; and a few, like u32 and String, implement all three (see page 382 for diagram).
+
+    // It's also possible for a type parameter to have no bounds at all, but we can't do much with a value if we haven't specified any bounds for it. We can move it, we can put it into a box or vector, that's about it.
+
+    // Generic functions can have multiple type parameters:
+    /// Run a query on a large, partitioned data set.
+    /// See <http://research.google.com/archive/mapreduce.html>.
+    fn run_query<M: Mapper + Serialize, R: Reducer + Serialize>(
+        data:&DataSet, map: M, reduce: R) -> Results
+    { ... }
+
+    // As this example shows, the bounds can get to be so long that they are hard on the eyes. Rust provides an alternative syntax using the keyword where:
+    fn run_query<M, R>(data: &DataSet, map: M, reduce: R) -> Results
+        where M: Mapper + Serialize,
+            R: Reducer + Serialize
+    { ... }
+
+    // The type parameters M and R are still declared up front, but the bounds are moved to separate lines. This kind of where clause is also allowed on generic structs, enums, type aliases, and methods. Anywhere bounds are permitted.
+
+    // Of course, an alternative to where clauses is to keep it simple. Find a way to write the program without using generics quite so intensively.
+
+    // "Receiving References as Parameters" (chapt 5) introduced the syntax for lifetime parameters. A generic function can have both lifetime parameters and type parameters. Lifetime parameters come first.
+    /// Return a ref to the point in `candidates` that's
+    /// closest to the `target` point.
+    fn nearest<'t, 'c, P>(target: &'t P, candidates: &'c [P]) -> &'c P
+        where P: MeasureDistance
+    {
+        ...
+    }
+
+    // This function takes two arguments, target and candidates. Both are references, and we give them distinct lifetimes 't and 'c (discussed in "Distinct Lifetime Parameters" in chapt 5). Furthermore, the function works with any type P that implements the MeasureDistance trait, so we might use it on Point2d values in one program and Point3d values in another.
+
+    // Lifetimes never have any impact on machine code. Two calls to nearest() using the same type P, but diff lifetimes, will call the same compiled function. Only differing types cause Rust to compile multiple copies of a generic function.
+
+    // Functions are not the only kind of generic code in Rust.
+        // Already covered generic types in "Generic Structs" and "Generic Enums" in chapt 9 and 10 respectively.
+        // An individual method can be generic, even if the type it's defined on is not generic:
+        impl PancakeStack {
+            fn push<T: Topping>(&mut self, goop: T) -> PancakeResult<()> {
+                ...
+            }
+        }
+
+        // Type aliases can be generic, too:
+        type PancakeResult<T> = Result<T, PancakeError>;
+
+        // Generic traits covered later in the chapt.
+
     
 
 }
