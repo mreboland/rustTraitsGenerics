@@ -481,6 +481,32 @@ fn main() {
 
 
 
+    // Subtraits
+
+    // We can declare that a trait is an extension of another trait:
+    /// Someone in the game world, either the player or some other
+    /// pixie, gargoyle, squirrel, ogre, etc.
+    trait Creature: Visible {
+        fn position(&self) -> (i32, i32);
+        fn facing(&self) -> Direction;
+        ...
+    }
+
+    // The phrase trait Creature: Visible means that all creatures are visible. Every type that implements Creature must also implement the Visible trait:
+    impl Visible for Broom {
+        ...
+    }
+
+    impl Creature for Broom {
+        ...
+    }
+
+    // We can implement the two trait in either order, but it's an error to implement Creature for a type without also implementing Visible.
+
+    // Subtraits are a way to describe a trait that extends an existing trait with a few more methods. In this example, all our code that works with Creatures can also use the methods from Visible trait.
+
+
+
     
 
 
