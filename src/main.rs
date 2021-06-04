@@ -431,7 +431,58 @@ fn main() {
 
 
 
+    // Self in Traits
+
+    // A trait can use the keyword Self as a type. The standard Clone trait, for example, looks like this (slightly simplified):
+    pub trait Clone {
+        fn clone(&self) -> Self;
+        ...
+    }
+
+    // Using Self as the return type here means that the type of x.clone() is the same as the type of x, whatever that might be. If x is a String, then the type of x.clone() is String, not Clone, or any other cloneable type.
+
+    // Likewise, if we define this trait:
+    pub trait Spliceable {
+        fn splice(&self, other:&Self) -> Self;
+    }
+
+    // with two implementations:
+    impl Spliceable for CherryTree {
+        fn splice(&self, other: &Self) -> Self {
+            ...
+        }
+    }
+
+    impl Spliceable for Mammoth {
+        fn splice(&self, other: &Self) -> Self {
+            ...
+        }
+    }
+
+    // then inside the first impl, Self is simply an alias for CherryTree, and in the second, it's an alias for Mammoth. This means that we can splice together two cherry trees or two mammoths, not that we can create a mammoth-cherry hybrid. The type of self and the type of other must match.
+
+    // A trait that uses the Self type is incompatible with trait objects:
+    // error: the trait `Spliceable` cannot be made into an object
+    fn splice_anything(left: &Spliceable, right: &Spliceable) {
+        let combo = left.splice(right);
+        ...
+    }
+
+    // The reason is something we'll see again and again as we dig into the advanced features of traits. Rust rejects this code because it has no way to type-check the call left.splice(right). The whole point of trait objects is that the type isn't know until runtime. Rust has no way to know at compile time if left and right will be the same type, as required.
+
+    // Trait objects are really intended for the simplest kinds of traits, the kinds that could be implemented using interfaces in Java or abstract base classes in C++. The more advanced features of traits are useful, but they can't coexist with trait objects because with trait objects, we lose the type info Rust needs to type-check our program.
+
+    // Now, had we wanted genetically improbably splicing, we could have designed a trait-object-friendly trait:
+    pub trait MegaSpliceable {
+        fn splice(&self, other: &MegaSpliceable) -> Box<MegaSpliceable>;
+    }
+
+    // This trait is compatible with trait objects. There's no problem type-checking calls to this .splice() method because the type of the argument other is not required to match the type of self, as long as both types are MegaSpliceable.
+
+
+
     
+
 
     
 
