@@ -276,6 +276,53 @@ fn main() {
 
 
     
+    // Defining and Implementing Traits
+
+    // Defining a trait is simple. Give it a name and list the type signatures of the trait methods. If we're writing a game, we might have a trait like this:
+    /// A trait for characters, items, and scenery -
+    /// anything in the game world that's visible on screen
+    trait Visible {
+        /// Render this object on the given canvas.
+        fn draw(&self, canvas: &mut Canvas);
+
+        /// Return true if clicking at (x, y) should
+        /// select this object
+        fn hit_test(&self, s: i32, y: i32) -> bool;
+    }
+
+    // To implement a trait, use the syntax impl TraitName for type:
+    impl Visible for Broom {
+        fn draw(&self, canvas: &mut Canvas) {
+            for y in self.y - self.height - 1 .. self.y {
+                canvas.write_at(self.x, y, '|');
+            }
+            canvas.write_at(self.x, self.y, 'M');
+        }
+
+        fn hit_test(&self, s: i32, y: i32) -> bool {
+            self.x == x
+            && self.y - self.height - 1 <= y
+            && y <= self.y
+        }
+    }
+
+    // This impl contains an implementation for each method of the Visible trait, and nothing else. Everything defined in a trait impl must actually be a feature of the trait. If we wanted to add a helper method in support of Broom::draw(), we would have to define it in a separate impl block:
+    impl Broom {
+        /// Helper function used by Broom::draw() below
+        fn broomstick_range(&self) -> Range<i32> {
+            self.y - self.height - 1 .. self.y
+        }
+    }
+
+    impl Visible for Broom {
+        fn draw(&self, canvas: &mut Canvas) {
+            for y in self.broomstick_range() {
+                ...
+            }
+            ...
+        }
+        ...
+    }
 
     
 
