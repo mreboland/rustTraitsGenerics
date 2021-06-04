@@ -507,7 +507,57 @@ fn main() {
 
 
 
-    
+    // Static Methods
+
+    // In most object-oriented languages, interfaces can't include static methods or constructors. However, Rust traits can include static methods and constructors, here is how:
+    trait StringSet {
+        /// Return a new empty set
+        fn new() -> Self;
+
+        /// Return a set that contains all the string in `strings`.
+        fn from_slice(strings: &[&str]) -> Self;
+
+        /// Find out if this set contains a particular `value`.
+        fn contains(&self, string: &str) -> bool;
+
+        /// Add a string to this set.
+        fn add(&mut self, string: &str);
+    }
+
+    // Every type that implements the StringSet trait must implement these four associated functions. The first two, new() and from_slice(), don't take a self argument. They serve as constructors.
+
+    // In nongeneric code, these functions can be called using :: syntax, just like any other static method:
+    // Create sets of two hypothetical types that impl StringSet:
+    let set1 = SortedStringSet::new();
+    let set2 = HashedStringSet::new();
+
+    // In generic code, it's the same, except the type is often a type variable, as in the call to S::new() shown here:
+    /// Return the set of words in`document` that aren't in `wordlist`.
+    fn unknown_words<S: StringSet>(document: &Vec<String>, wordlist: &S) -> S {
+        let mut unknowns = S::new();
+        for word in document {
+            if !wordlist.contains(word) {
+                unknowns.add(word);
+            }
+        }
+        unknowns
+    }
+
+    // Traits objects don't support static methods. If we want to use &StringSet trait objects, we must change the trait, adding the bound where Self: Sized to each static method:
+    trait StringSet {
+        fn new() -> Self
+            where Self: Sized;
+
+        fn from_slice(strings: &[&str]) -> Self
+            where Self: Sized;
+
+        fn contains(&self, string: &str) -> bool;
+
+        fn add(&mut self, string: &str);
+    }
+
+    // This bound tells Rust that trait objects are excused from supporting this method. StringSet trait objects are then allowed. They still don't support the two static methods, but we can create them and use them to call .contains() and .add(). The same trick works for any other method that is incompatible with trait objects.
+
 
 
     
