@@ -324,6 +324,55 @@ fn main() {
         ...
     }
 
+
+
+    // Default Methods
+
+    // The Sink writer type we discussed earlier can be implemented in a few lines of code. First, we define the type:
+    /// A Writer that ignores whatever data we write to it
+    pub struct Sink;
+
+    // Sink is an empty struct, since we don't need to store any data in it. Next, we provide an implementation of the Write trait for Sink:
+    use std::io::{Write, Result};
+
+    impl Write for Sink {
+        fn write(&mut self, buf: &[u8]) -> Result<usize> {
+            // Claim to have successfully written the whole buffer.
+            Ok(buf.len())
+        }
+
+        fn flush(&mut self) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    // So far, this is very much like the Visible trait. But we have also seen that the Write trait has a write_all method:
+    out.write_all(b"hello world\n")?;
+
+    // Why does Rust let us impl Write for Sink without defining this method? The answer is that the standard library's definition of the Write trait contains a default implementation for write_all:
+    trait Write {
+        fn write(&mut self, buf: &[u8]) -> Result<usize>;
+        fn flush(&mut self) -> Result<()>;
+
+        fn write_all(&mut self, buf: &[u8]) -> Result<()> {
+            let mut bytes_written = 0;
+            while bytes_written < buf.len() {
+                bytes_written += self.write(&buf[butes_written..])?;
+            }
+            Ok(())
+        }
+
+        ...
+    }
+
+    // The write and flush methods are the basic methods that every writer must implement. A writer may also implement write_all, but if not, the default implementation shown above will be used.
+
+    // Our own traits can include default implementations using the same syntax. More in chapt 5.
+
+
+
+    
+
     
 
 }
