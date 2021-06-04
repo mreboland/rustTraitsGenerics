@@ -371,6 +371,66 @@ fn main() {
 
 
 
+    // Traits and Other People's Types
+
+    // Rust lets us implement any trait on any type, as long as either the trait or the type is introduced in the current crate.
+
+    // This means that any time we want to add a method to any type, we can use a trait to do it:
+    trait IsEmoji {
+        fn is_emoji(&self) -> bool;
+    }
+
+    /// Implement IsEmoji for the built-in character type
+    impl IsEmoji for char {
+        fn is_emoji(&self) -> bool {
+            ...
+        }
+    }
+
+    assert_eq!('$'.is_emoji(), false);
+
+    // Like any other trait method, this new is_emoji method is only visible when IsEmoji is in scope.
+
+    // The sole purpose of this particular trait is to add a method to an existing type, char. This is called an extension trait. We can also add this trait to types as well, by writing impl IsEmoji for str { ... } and so forth.
+
+    // We can even use a generic impl block to add an extension trait to a whole family of types at once. The following extension trait adds a method to allRust writers:
+    use std::io::{self, Write};
+
+    /// Trait for values to which you can send HTML.
+    trait WriteHtml {
+        fn write_html(&mut self, &HtmlFocument) -> io::Result<()>;
+    }
+
+    /// We can write HTML to any std::io writer.
+    impl<W: Write> WriteHtml for W {
+        fn write_html(&mut self, &HtmlFocument) -> io::Result<()> {
+            ...
+        }
+    }
+
+    // The line impl<W: Write> WriteHtml for W means "for every type W that implements Write, here's an implementation of WriteHtml for W".
+
+    // The serde library offers a nice example of how useful it can be to implement user-defined traits on standard types. serde is a serialization library. That is, we can use it to write Rust data structures to disk and reload them later. The library defines a trait, Serialize, that's implemented for every data type the library supports. So in the serde source code, there is code implementing Serialize for bool, i8, i16, i32, array and tuple types, and so on, through all the standard data structures like Vec and HashMap.
+
+    // The upshot of all this is that serde add a .serialize() method to all these types. It can be used like so:
+    use serde::Serialize;
+    use serde_json;
+
+    pub fn save_configuration(config: &HashMap<String, String) -> std::io::Result<()> {
+        /// Create a JSON serializer to write the data to a file.
+        let writer = FIle::create(config_filename())?;
+        let mut serializer = serde_json::Serializer::new(writer);
+
+        // The serde `.serialize()` method does the rest.
+        config.serialize(&mut serializer)?;
+
+        Ok(())
+    }
+
+    // We said earlier that when we implement a trait, either the trait or the type must be new in the current crate. This is called the coherence rule. It helps Rust ensure that trait implementations are unique. Our code can't impl Write for u8, because both Write and u8 are defined in the standard library. If Rust let crates do that, there could be multiple implementations of Write for u8, in different crates, and Rust would have no reasonable way to decide which implementation to use for a given method call.
+
+
+
     
 
     
