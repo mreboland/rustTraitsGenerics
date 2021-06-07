@@ -790,7 +790,102 @@ fn main() {
 
 
 
-    
+    // Reverse-Engineering Bounds
+
+    // Writing generic code can be a real slog when there's no single trait that does everything we need. Suppose we have written this nongeneric function to do some computation:
+    fn dot(v1: &[i64], v2: &[i64]) -> i64 {
+        let mut total = 0;
+        for i in 0 .. v1.len() {
+            total = total + v1[i] * v2[i];
+        }
+        total
+    }
+
+    // Now we want to use the same code with floating-point values. We might try something like this:
+    fn dot<N>(v1: &[N], v2: &[N]) -> N {
+        let mut total: N = 0;
+        for i in 0 .. v1.len() {
+            total = total + v1[i] * v2[i];
+        }
+        total
+    }
+
+    // No such luck. Rust complains about the use of + and * and the type of 0. We can require N to be a type that supports + and * using the Add and Mul traits. Our use of 0 needs to change, though, because 0 is always an integer in Rust. The corresponding floating-point value is 0.0. Fortunately, there is a standard Default trait for types that have default values. For numeric types, the default is always 0.
+    use std::ops::{Add, Mul};
+
+    fn dot<N: Add + Mul + Default>(v1: &[N], v2: &[N]) -> N {
+        let mut total = N::default();
+        for i in 0 .. v1.len() {
+            total = total + v1[i] * v2[i];
+        }
+        total
+    }
+
+    // The above is closer, but still does not work:
+    // error: mismatched types...
+    // traits_generic_dot_2.rs...
+
+    // Our new code assumes that multiplying two values of type N produces another value of type N. This isn't necessarily the case. We can overload the multiplication operator to return whatever type we want. We need to somehow tell Rust that this generic function only works with types that have the normal flavour of multiplication, where multiplying N * N returns an N. We do this by replacing Mul with Mul<Output=N>, and the same for Add:
+    fn dot<N: Add<Output=N> + Mul<Output=N> + Default>(v1: &[N], v2: &[N]) -> N
+    {
+        ...
+    }
+
+    // At this point, the bounds are starting to pile up, making the code hard to read. Let's move the bounds into a where clause:
+    fn dot<N>(v1: &[N], v2: &[N]) -> N
+        where N: Add<Output=N> + Mul<Output=N> + Default
+    {
+        ...
+    }
+
+    // Rust still complains about the above code:
+    // Error: cannot move out of type `[N]`, a non-copy array..
+    // traits_generic_dot_3...
+
+    // It illegal to move the value of v1[i] out of the slice. But numbesr are copyable, so what's the issue?
+
+    // The answer is that Rust doesn't know v1[i] is a number. In fact, it isn't. The type N can be any type that satisfies the bounds we've given it. If we also want N to be a copyable type, we must say so:
+    where N: Add<Output=N> + Mul<Output=N> + Default + Copy
+
+    // With this, the code compiles and runs. The final code looks like this:
+    use std::ops::{Add, Mul};
+
+    fn dot<N>(v1: &[N], v2: &[N]) -> N
+        where N: Add<Output=N> + Mul<Output=N> + Default + Copy
+    {
+        let mut total = N::default();
+        for i in 0 .. v1.len() {
+            total = total + v1[i] * v2[i];
+        }
+        total
+    }
+
+    #[test]
+    fn test_dot() {
+        assert_eq!(dot(&[1,2,3,4], &[1,1,1,1]), 10);
+        assert_eq!(dot(&[53.0, 7.0], &[1.0, 5.0]), 88.0);
+    }
+
+    // This occasionally happens in Rust. There is a period of intense arguing with the compiler, at the end of which the code looks rather nice, as if it had been a breeze to write, and runs beautifully.
+
+    // What we've been doing here is reverse-engineering the bounds on N using the compiler to guide and check our work. The reason it was a bit of a pain is that there wasn't a single Number trait in the std lib that included all the operators and methods we wanted to use. As it happens, there's a popular open source crate called num that defines such a trait. We could have added num to our Cargo.toml and written:
+    use num::Num;
+
+    fn dot<N: Num + Copy>(v1: &[N], v2: &[N]) -> N {
+        let mut total = N::zero();
+        for i in 0 .. v1.len() {
+            total = total + v1[i] * v2[i];
+        }
+        total
+    }
+
+    // Just as in OOP, the right interface makes everything nice. In generic programming, the right trait makes everything nice.
+
+    // Once advantage of Rust's approach (vs C++) is forward compatibility of generic code. We can change the implementation of a public generic function or method, and if we didn't change the signature, we haven't broken any of its users.
+
+    // Another advantage of bounds is that when we do get a compiler error, it as least tells you where the trouble is. C++ is much more convoluted, is it a template, or the template's caller?
+
+    // Perhaps the most important advantage of writing out the bounds explicitly is simply that they are there, in the code and in the documentation. We can look at the signature of a generic function in Rust and see exactly what kind of arguments it aceepts.
 
 
 
