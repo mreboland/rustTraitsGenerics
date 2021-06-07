@@ -746,6 +746,54 @@ fn main() {
 
 
 
+    // Buddy Traits (or How rand::random() Works)
+
+    // There's one more way to use traits to express relationships between types. This way is perhaps the simplest of the bunch, since we don't have to learn any new language features to understand it. What we'll call buddy traits, are simply traits that are designed to work together.
+
+    // There's a good example inside the rand crate, a popular crate for generating random numbers. The main feature of rand is the random() function, which returns a random value:
+    use rand::random;
+    let x = random();
+
+    // If Rust can't infer the type of the random value, which is often the case, we must specify it:
+    let x = random::<f64>(); // a number, 0.0 <= x < 1.0
+    let b = random::<bool>(); // true or false
+
+    // For many programs, this one generic function is all we need. But the rand crate also offers several diff, but interoperable, random number generators. All the random number generators in the library implement a common trait:
+    /// A random number generator.
+    pub trait Rng {
+        fn next_u32(&mut self) -> u32;
+        ...
+    }
+
+    // An Rng is simply a value that can spit out integers on demand. The rand library provides a few diff implementations, including XorShiftRng (a fast pseudorandom number generator) and OsRng (much slower, but truly unpredictable, for use in cryptography).
+
+    // The buddy trait is called Rand:
+    /// A type that can be randomly generated using an `Rng`.
+    pub trait Rand: Sized {
+        fn rand<R: Rng>(rng: &mut R) -> Self;
+    }
+
+    // Types like f64 and bool implement this trait. Pass any random number generator to their ::rand() method, and it returns a random value:
+    let x = f64::rand(rng);
+    let b = bool::rand(rng);
+
+    // In fact, random() is nothing but a thin wrapper that passes a globally allocated Rng to this rand method. One way to implement it is like this:
+    pub fn random<T: Rand>() -> T {
+        T::rand(&mut global_rng())
+    }
+
+    // When we see traits that use other traits as bounds, the way Rand::rand() uses Rng, we know that those two traits are mix-and-match. Any Rng can generate values of every Rand type. Since the methods involved are generic, Rust generates optimized machine code for each combination of Rng and Rang that our program actually uses.
+
+    // The two traits also serve to separate concerns. Whether we're implementing Rand for our Monster type or implementing a spectacularly fast, but not-so-random Rng, we don't have to do anything special for those two pieces of code to be able to work together (see fig on page 411).
+    
+    // The standard lib's support for computing hash codes provides another example of buddy traits. Types that implement Has are hashable, so they can be used as hash table keys. Types that implement Hasher are hashing algorithms. The two are linked in the same way as Rand and Rng. Hash has a generic method Hash::hash() that accepts any type of Hasher as an argument.
+
+
+
+    
+
+
+
 
 
     
