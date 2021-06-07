@@ -560,6 +560,52 @@ fn main() {
 
 
 
+    // Fully Qualified Method Calls
+
+    // A method is just a special kind of function. These two calls are equivalent:
+    "hello".to_string()
+    str::to_string("hello")
+
+    // The second form looks exactly like a static method call. This works even though the to_string method takes a self argument. Simply pass self as the function's first argument.
+
+    // Since to_string is a method of the standard ToString trait, there are two more forms we can use:
+
+    ToString::to_string("hello")
+    <str as ToString>::to_string("hello")
+
+    // ALl four of these method calls do exactly the same thing. Most often, we'll just write value.method(). The other forms are qualified method calls. They specify the type or trait that a method is associated with. The last form, with the angle brackets, specifies both, a fully qualified method call.
+
+    // When we write "hello".to_string(), using the . operator, we don't say exactly which to_string method we're calling. Rust has a method lookup algorithm that figures this out, depending on the types, deref coercions, and so on. With fully qualified calls, we can say exactly which method we mean, and that can help in a few odd cases:
+        // 1. When two methods have the same name. The classic hokey example is the Outlaw with two .draw() methods from two diff traits. One for drawing it on the screen and one for interacting with the law:
+        outlaw.draw(); // error, draw on screen or draw pistol?
+        Visible::draw(&outlaw); // ok, draw on screen
+        HasPistol::draw(&outlaw); // ok, corral
+        // Normally, we're better off just renaming one of the methods, but sometimes we can't.
+
+        // 2. When the type of the self argument can't be inferred:
+        let zero = 0; // type unspecified, could be `i8`, `u8`, ...
+        zer.abs(); // error, method `abs` not found
+        i64::abs(zero); // ok
+
+        // 3. When using the function itself as a function value:
+        let words: Vec<String> =
+            line.split_whitespace() // iterator produces &str values
+                .map(<str as ToString>::to_string) // ok
+                .collect();
+        // Here the fully qualified <str as ToString>::to_string is just a way to name the specific function we want to pass to .map().
+        
+        // 4. When calling trait methods in macros (chapt 20).
+    
+    // Fully qualified syntax also works for static methods. In the previous section, we wrote S::new() to create a new set in a generic function. We could also have written StringSet::new() or <S as StringSet>::new().
+
+
+
+    
+
+
+
+
+
     
 
 }
