@@ -713,7 +713,36 @@ fn main() {
         
         // A library for working with relational databases might have a DatabaseConnection trait with associated types representing transactions, cursors, prepared statements, and so on.
     
-    // Associated types are perfect for cases where each implementation has one specific related type. Each type of Task produces a particular type of Output. Each type of Pattern looks for a particular type of Match. 
+    // Associated types are perfect for cases where each implementation has one specific related type. Each type of Task produces a particular type of Output. Each type of Pattern looks for a particular type of Match.
+
+
+
+    // Generic Traits (or How Operator Overloading Works)
+
+    // Multiplication in Rust uses this trait:
+    /// std::ops::Mul, the trait for types that support `*`.
+    pub trait Mul<RHS> {
+        /// The resulting type after applying the `*` operator
+        type Output;
+
+        /// The methods for the `*` operator
+        fn mul(self, rhs: RHS) -> Self::Output;
+    }
+
+    // Mul is a generic trait. The type parameter, RHS, is short for right hand side.
+
+    // The type parameter here means the same thing that it means on a struct or function. Mul is a generic trait, and its instances Mul<f64>, Mul<String>, Mul<Size>, etc. are all diff traits, just as min::<i32> and min::<String> are diff functions and Vec<i32> and Vec<String> are diff types.
+
+    // A single type, say, WindowSize, can implement both Mul<f64> and Mul<i32>, and many more. We would then be able to multiply a WindowSize by many other types. Each implementation would have its own associated Output type.
+
+    // The trait shown above is missing on minor detail. The real Mul trait looks like this:
+    pub trait Mul<RHS=Self> {
+        ...
+    }
+
+    // The syntax RHS=Self means that RHS defaults to Self. If we write impl Mul for Complex, without specifying Mul's type parameter, it means impl Mul<Complex> for Complex. In a bound, if we write where T: Mul, it means where T: Mul<T>.
+
+    // In Rust, the expression lhs * rhs is shorthand for Mul::mul(lhs, rhs). So overloading the * operator in Rust is as simple as implementing the Mul trait.
 
 
 
