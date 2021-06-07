@@ -1,3 +1,5 @@
+use std::usize;
+
 fn main() {
     println!("Hello, world!");
 
@@ -609,7 +611,109 @@ fn main() {
 
     
 
+    // Associated Types (or How iterators Work)
+
+    // Rust has a standard Iterator trait, defined like so:
+    pub trait Iterator {
+        type Item;
+
+        fn next(&mut self) -> Option<Self::Item>;
+        ...
+    }
+
+    // The first feature of this trait, type item;, is an associated type. Each type that implements Iterator must specify what type of item it produces.
+
+    // The second feature, the next() method uses the associated type in its return value. next() returns an Option<Self::Item>. Either Some(item), the next value in the sequence, or None, when there are no more values to visit. The type is written as Self::Item, not just plain Item, because Item is a feature of each type of iterator, not a standalone type. As always, self and the Self type show up explicitly in the code everywhere their fields, methods, and so on are used.
+
+    // Here's what it looks like to implement Iterator for a type:
+    // (code from the std::env standard lib module)
+    impl Iterator for Args {
+        type Item = String;
+
+        fn next(&mut self) -> Option<String> {
+            ...
+        }
+        ...
+    }
+
+    // std::env::Args is the type of iterator returned by the standard lib function std::env::args() that we used in chapt 2 to access command-line arguments. It produces String values, so the impl declares type item = String;.
+
+    // Generic code can use associated types:
+    /// Loop over an iterator, storing the values in a new vector.
+    fn collect_into_vector<I: Iterator>(iter: I) -> Vec<I::Item> {
+        let mut results = Vec::new();
+        for value in iter {
+            results.push(value);
+        }
+        results
+    }
+
+    // Inside the body of the above function, Rust infers the type of value for us. But we must spell out the return type of collect_into_vector, and the Item associated type is the only way to do that. (Vec<I> would be wrong, we would be claiming to return a vector of iterators!)
+
+    // The preceding example is not code that we would write out ourself. After reading chapt 15, we'll know that iterators already have a standard method that does thi: iter.collect(). Another example:
+    /// Print out all the values produced by an iterator
+    fn dump<I>(iter: I)
+        where I: Iterator
+    {
+        for (index, value) in iter.enumerate() {
+            println!("{}: {:?}", index, value); // error
+        }
+    }
+
+    // The above almost works, there is just one problem. value might not be a printable type.
+    // error: the trait bound <I as std::iter::... is not satisfied...
+
+    // The error message is slightly obfuscated by Rust’s use of the syntax <I as std::iter::Iterator>::Item, which is a long, maximally explicit way of saying I::Item. This is valid Rust syntax, but we'll rarely actually need to write a type out that way.
+
+    // The gist of the error msg is that to make this generic function compile, we must ensure that I::Item implements the Debug trait, the trait for formatting values with {:?}. We can do this by placing a bound on I::Item:
+    use std::fmt::Debug;
+
+    fn dump<I>(iter: I)
+        where I: Iterator, I::Item: Debug
+    {
+        ...
+    }
+
+    // Or, we could write, "I must be an iterator over String values":
+    fn dump<I>(iter: I)
+        where I: Iterator<Item=String>
+    {
+        ...
+    }
+
+    // Iterator<Item=String> is itself a trait. If we think of Iterator as the set of all iterator types, then Iterator<Item=String> is a subset of Iterator. The set of iterator types that produce Strings. This syntax can be used anywhere the name of a trait can be used, including trait object types:
+    fn dump(iter: &mut Iterator<Item=String>) {
+        for (index, s) in iter.enumerate() {
+            println!("{}: {:?}", index, s);
+        }
+    }
+
+    // Traits with associated types, like Iterator, are compatible with trait methods, but only if all the associated types are spelled out, as shown. Otherwise, the type of s could be anything, and again, Rust would have no way to type-check this code.
+
+    // Iterators are by far the most prominent use of associated types. But associated types are generally useful whenever a trait needs to cover more than just methods.
+        // In a thread pool library, a Task trait, representing a unit of work, could have an associated Output type.
+        // A Pattern trait, representing a way of searching a string, could have an associated Match type, representing all the info gathered by matching the pattern to the string.
+        trait Patter {
+            type Match;
+
+            fn search(&self, string: &str) -> Option<Self::Match>;
+        }
+
+        /// We can search a string for a particular character.
+        impl Pattern for char {
+            /// A "match" is just the location where the character was found
+            type Match = usize;
+
+            fn search(&self, string: &str) -> Option<usize> {
+                ...
+            }
+        }
+
+        // If we're familiar with regular expressions, it's easy to see how impl Pattern for RegExp would have a more elaborate Match type, probably a struct that would include the start and length of the match, the locations hwere parenthesized groups matched, and so on.
+        
+        // A library for working with relational databases might have a DatabaseConnection trait with associated types representing transactions, cursors, prepared statements, and so on.
     
+    // Associated types are perfect for cases where each implementation has one specific related type. Each type of Task produces a particular type of Output. Each type of Pattern looks for a particular type of Match. 
 
 
 
