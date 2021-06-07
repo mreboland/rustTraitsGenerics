@@ -600,6 +600,15 @@ fn main() {
 
 
 
+    // Traits That Define Relationships Between Types
+
+    // A trait is a set of methods that types can implement. Traits can also be used in situations where there are multiple types that have to work together. They can describe relationship between types.
+        // 1. The std::iter::Iterator trait relates each iterator type with the type of value it produces.
+        // 2. The std::ops::Mul trait relates types that can be multiplied. In the expression a * b, the values a and b can be either the same type or diff types.
+        // 3. The rand crate includes both a trait for random number generators (rand::Rng) and a trait for types that can be randomly generated (rand::Rand). The traits themselves define exactly how these types work together.
+
+    
+
     
 
 
